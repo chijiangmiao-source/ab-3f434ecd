@@ -1,7 +1,10 @@
+node_modules/
+dist/
+.npm-cache/
+coverage/
 .DS_Store
 .env
 .venv/
-node_modules/
 __pycache__/
 .pytest_cache/
 .mypy_cache/

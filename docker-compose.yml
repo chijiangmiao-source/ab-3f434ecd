@@ -1,0 +1,32 @@
+services:
+  # 静态 Web：nginx 仅托管前端构建产物，并提供 /healthz HTTP 健康检查。
+  web:
+    build: .
+    image: split-audit-web:latest
+    ports:
+      # 宿主机端口可配置：HOST_PORT=9090 docker compose up -d（默认 8080）
+      - "${HOST_PORT:-8080}:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # 一次性验收服务：单元测试 + 生产构建检查 + 样例重放 + HTTP 冒烟，结束后自行退出。
+  # 用法：docker compose run --rm verify （容器退出码即验收结果：echo $?）
+  # 使用独立 profile，普通 docker compose up 只启动 web。
+  verify:
+    profiles: ["verify"]
+    build:
+      context: .
+      target: build
+    image: split-audit-verify:latest
+    working_dir: /app
+    environment:
+      WEB_URL: http://web:80
+    depends_on:
+      web:
+        condition: service_healthy
+    command: ["sh", "scripts/verify.sh"]
+    restart: "no"
